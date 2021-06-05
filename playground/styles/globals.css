@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+
+:root {
+  --mi-foreground: #fff;
+  --mi-background: #000;
+  --mi-secondary: #b4b4b4;
+  --mi-accent: #1a1a1a;
+}
+
+@tailwind utilities;

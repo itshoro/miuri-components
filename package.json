@@ -41,7 +41,6 @@
     "build-watch": "rollup -c -w",
     "start-playground": "cd playground && yarn run dev",
     "i-all": "yarn && cd playground && yarn",
-    "dev": "npm-run-all --parallel build-watch start-playground",
-    "publish": "yarn run build && yarn publish"
+    "dev": "npm-run-all --parallel build-watch start-playground"
   }
 }
