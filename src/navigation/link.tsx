@@ -10,7 +10,7 @@ const Link = ({ href, children }: LinkArgs) => {
     <NextLink href={href}>
       <a
         className={[
-          "font-medium",
+          "font-medium text-sm",
           isCurrentPage ? "text-foreground" : "text-secondary",
         ]
           .filter((x) => x)

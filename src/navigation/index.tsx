@@ -16,6 +16,7 @@ const sectionPaddingX = undefined;
 const Navigation = ({
   children,
   links,
+  position,
   className,
   routeChangeCompleteCallback,
 }: NavigationArgs) => {
@@ -47,10 +48,11 @@ const Navigation = ({
   return (
     <nav
       className={[
-        "fixed w-full z-10 bg-black text-white duration-500 ease-in-out backdrop-filter backdrop-blur-lg backdrop-saturate-150",
+        "w-full z-10 bg-black text-white duration-500 ease-in-out backdrop-filter backdrop-blur-lg backdrop-saturate-150",
         menuExpanded ? "h-screen bg-opacity-100" : "h-12 bg-opacity-40",
         "md:h-12",
         className,
+        position,
       ]
         .filter((x) => x)
         .join(" ")}
@@ -164,9 +166,10 @@ const Navigation = ({
 };
 
 type NavigationArgs = {
-  children: ReactNode;
+  children?: ReactNode;
   links: NavLinkArgs[];
   className?: string;
+  position?: "fixed" | "sticky" | "relative" | "absolute" | "static";
   routeChangeCompleteCallback?: VoidFunctionComponent;
 };
 
