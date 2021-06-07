@@ -1,7 +1,7 @@
 {
   "name": "@itshoro/miuri-components",
   "main": "dist/index.cjs.js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Private component library",
   "license": "MIT",
   "module": "dist/index.esm.js",
