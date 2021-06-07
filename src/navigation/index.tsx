@@ -21,17 +21,18 @@ const Navigation = ({
   const [menuExpanded, setMenuExpanded] = useState(false);
   const router = useRouter();
 
-  const handleRouteChangeComplete = () => {
+  const handleRouteChangeComplete = (
+    url: string,
+    { shallow }: { shallow: Boolean }
+  ) => {
     if (routeChangeCompleteCallback) routeChangeCompleteCallback();
     setMenuExpanded(false);
   };
 
   useEffect(() => {
-    if (routeChangeCompleteCallback)
-      router.events.on("routeChangeComplete", handleRouteChangeComplete);
+    router.events.on("routeChangeComplete", handleRouteChangeComplete);
     return () => {
-      if (routeChangeCompleteCallback)
-        router.events.off("routeChangeComplete", handleRouteChangeComplete);
+      router.events.off("routeChangeComplete", handleRouteChangeComplete);
     };
   }, [router]);
 
