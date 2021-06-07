@@ -21,12 +21,17 @@ const Navigation = ({
   const [menuExpanded, setMenuExpanded] = useState(false);
   const router = useRouter();
 
+  const handleRouteChangeComplete = () => {
+    if (routeChangeCompleteCallback) routeChangeCompleteCallback();
+    setMenuExpanded(false);
+  };
+
   useEffect(() => {
     if (routeChangeCompleteCallback)
-      router.events.on("routeChangeComplete", routeChangeCompleteCallback);
+      router.events.on("routeChangeComplete", handleRouteChangeComplete);
     return () => {
       if (routeChangeCompleteCallback)
-        router.events.off("routeChangeComplete", routeChangeCompleteCallback);
+        router.events.off("routeChangeComplete", handleRouteChangeComplete);
     };
   }, [router]);
 
@@ -163,7 +168,7 @@ type NavigationArgs = {
   links: NavLinkArgs[];
   className?: string;
   position?: "fixed" | "sticky" | "relative" | "absolute" | "static";
-  routeChangeCompleteCallback?: VoidFunctionComponent;
+  routeChangeCompleteCallback?: () => void;
 };
 
 type NavLinkArgs = {
