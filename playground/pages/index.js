@@ -15,7 +15,9 @@ export default function Home() {
 
         <section className="relative w-full pt-4">
           <article className=" p-4 border rounded-lg resize-x overflow-x-auto max-w-full">
-            <Navigation className="w-full" links={links} />
+            <Navigation className="w-full px-12" links={links}>
+              Logo
+            </Navigation>
           </article>
         </section>
 
