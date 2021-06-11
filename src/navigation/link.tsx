@@ -16,6 +16,7 @@ const Link = ({ href, children }: LinkArgs) => {
           .filter((x) => x)
           .join(" ")}
       >
+        {isCurrentPage && <span className="sr-only">Current Page: </span>}
         {children}
       </a>
     </NextLink>

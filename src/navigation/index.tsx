@@ -1,15 +1,14 @@
 import React, {
   ReactNode,
   useEffect,
-  useCallback,
   useRef,
   useState,
-  VoidFunctionComponent,
   KeyboardEvent,
 } from "react";
 import { useRouter } from "next/router";
 import { Button } from "../button/index";
 import { Link } from "./link";
+import { useWindowEvent } from "../hooks/useWindowEvent";
 
 const Navigation = ({
   children,
@@ -19,13 +18,22 @@ const Navigation = ({
   routeChangeCompleteCallback,
 }: NavigationArgs) => {
   const [menuExpanded, setMenuExpanded] = useState(false);
+  const hoveredItem = useRef(-1);
   const router = useRouter();
+
+  useWindowEvent("keydown", (event) => {
+    if (event.key === "Escape") {
+      hoveredItem.current = -1;
+      setMenuExpanded(false);
+    }
+  });
 
   const handleRouteChangeComplete = (
     url: string,
-    { shallow }: { shallow: Boolean }
+    { shallow }: { shallow: boolean }
   ) => {
-    if (routeChangeCompleteCallback) routeChangeCompleteCallback();
+    if (routeChangeCompleteCallback)
+      routeChangeCompleteCallback(url, { shallow });
     setMenuExpanded(false);
   };
 
@@ -37,17 +45,98 @@ const Navigation = ({
   }, [router]);
 
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const linksRef = useRef<HTMLUListElement>(null);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    event.stopPropagation();
-
+  const handleKeyDownButton = (event: KeyboardEvent) => {
     switch (event.key) {
       case "Escape":
+        event.preventDefault();
+        event.stopPropagation();
         setMenuExpanded(false);
         buttonRef?.current?.focus();
         break;
+
+      case "Enter":
+        // For some reason the Enter key seems to have some default behaviour.
+        // I can handle it to some degree, e.g. do `console.log`, however updating state
+        // doesn't work.
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nextMenu = !menuExpanded;
+        setMenuExpanded((menuExpanded) => !menuExpanded);
+
+        if (nextMenu) {
+          hoveredItem.current = 0;
+          requestAnimationFrame(() => {
+            linksRef?.current
+              ?.querySelectorAll("a")
+              [hoveredItem.current].focus();
+          });
+        }
     }
-  }, []);
+  };
+
+  const handleKeyDownItems = (event: KeyboardEvent) => {
+    switch (event.key) {
+      case "Escape":
+        event.preventDefault();
+        event.stopPropagation();
+
+        hoveredItem.current = -1;
+        setMenuExpanded(false);
+
+        requestAnimationFrame(() => {
+          buttonRef?.current?.focus();
+        });
+
+      case "ArrowUp":
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (hoveredItem.current - 1 < 0) hoveredItem.current = links.length - 1;
+        else hoveredItem.current--;
+        console.log(hoveredItem);
+
+        requestAnimationFrame(() => {
+          linksRef?.current
+            ?.querySelectorAll("a")
+            [hoveredItem.current]?.focus();
+        });
+        break;
+
+      case "ArrowDown":
+        event.preventDefault();
+        event.stopPropagation();
+
+        hoveredItem.current = (hoveredItem.current + 1) % links.length;
+        console.log(hoveredItem);
+
+        requestAnimationFrame(() => {
+          linksRef?.current
+            ?.querySelectorAll("a")
+            [hoveredItem.current]?.focus();
+        });
+        break;
+
+      case "Tab":
+        if (event.shiftKey) {
+          hoveredItem.current--;
+
+          if (hoveredItem.current < 0) {
+            requestAnimationFrame(() => {
+              buttonRef?.current?.focus();
+            });
+          }
+        } else {
+          hoveredItem.current =
+            hoveredItem.current + 1 >= links.length
+              ? -1
+              : hoveredItem.current + 1;
+        }
+        break;
+    }
+  };
 
   return (
     <nav
@@ -59,7 +148,7 @@ const Navigation = ({
         .filter((x) => x)
         .join(" ")}
       style={{ transitionProperty: "height,background" }}
-      onKeyDown={handleKeyDown}
+      aria-label="Main"
     >
       <div
         className={[
@@ -75,8 +164,9 @@ const Navigation = ({
             ref={buttonRef}
             className="rounded md:hidden hover:bg-white hover:bg-opacity-20"
             onClick={() => {
-              setMenuExpanded(!menuExpanded);
+              setMenuExpanded((menuExpanded) => !menuExpanded);
             }}
+            onKeyDown={handleKeyDownButton}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -128,7 +218,7 @@ const Navigation = ({
             .join(" ")}
         >
           <ul
-            id="siteNav"
+            ref={linksRef}
             className={[
               "flex flex-col items-start md:flex-row md:space-x-4 md:justify-end md:h-auto",
               !menuExpanded && "h-0",
@@ -136,6 +226,7 @@ const Navigation = ({
               .filter((x) => x)
               .join(" ")}
             style={{ transitionProperty: "height" }}
+            onKeyDown={handleKeyDownItems}
           >
             {links.map(({ title, href }, i) => (
               <li
@@ -169,7 +260,10 @@ type NavigationArgs = {
   links: NavLinkArgs[];
   className?: string;
   position?: "fixed" | "sticky" | "relative" | "absolute" | "static";
-  routeChangeCompleteCallback?: () => void;
+  routeChangeCompleteCallback?: (
+    url: string,
+    { shallow }: { shallow: boolean }
+  ) => void;
 };
 
 type NavLinkArgs = {
