@@ -1,14 +1,29 @@
-import React, { forwardRef, MouseEventHandler, ReactNode, Ref } from "react";
+import React, {
+  forwardRef,
+  KeyboardEventHandler,
+  MouseEventHandler,
+  ReactNode,
+  Ref,
+} from "react";
 
 const Button = forwardRef(
   (
-    { children, className, disabled, onClick, prefix, suffix }: ButtonArgs,
+    {
+      children,
+      className,
+      disabled,
+      onClick,
+      onKeyDown,
+      prefix,
+      suffix,
+    }: ButtonArgs,
     ref: Ref<HTMLButtonElement>
   ) => {
     return (
       <button
         ref={ref}
         onClick={onClick}
+        onKeyDown={onKeyDown}
         disabled={disabled}
         className={className}
       >
@@ -25,6 +40,7 @@ type ButtonArgs = {
   children?: ReactNode;
   disabled?: boolean;
   onClick?: MouseEventHandler;
+  onKeyDown?: KeyboardEventHandler;
 };
 
 export { Button, ButtonArgs };
