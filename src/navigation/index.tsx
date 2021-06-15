@@ -1,14 +1,75 @@
 import React, {
   ReactNode,
   useEffect,
-  useRef,
-  useState,
+  useReducer,
   KeyboardEvent,
+  MutableRefObject,
+  createRef,
 } from "react";
 import { useRouter } from "next/router";
 import { Button } from "../button/index";
 import { Link } from "./link";
 import { useWindowEvent } from "../hooks/useWindowEvent";
+
+const reducer = (state: NavigationStateDefinition, action: Action) => {
+  switch (action.type) {
+    case ActionType.OpenMenu:
+      if (state.menuState === MenuState.Open) return state;
+
+      requestAnimationFrame(() => {
+        state.linksRef.current?.querySelector("a")?.focus();
+      });
+
+      return {
+        ...state,
+        menuState: MenuState.Open,
+        focusedItem: 0,
+      };
+
+    case ActionType.CloseMenu:
+      if (state.menuState === MenuState.Closed) return state;
+
+      return {
+        ...state,
+        menuState: MenuState.Closed,
+        focusedItem: null,
+      };
+
+    case ActionType.FocusItem:
+      if (state.menuState === MenuState.Closed) return state;
+
+      return {
+        ...state,
+        menuState: MenuState.Open,
+        focusedItem: action.item,
+      };
+
+    default:
+      return state;
+  }
+};
+
+interface NavigationStateDefinition {
+  menuState: MenuState;
+  focusedItem: number | null;
+  buttonRef: MutableRefObject<HTMLButtonElement | null>;
+  linksRef: MutableRefObject<HTMLUListElement | null>;
+}
+
+type Action =
+  | { type: ActionType.OpenMenu }
+  | { type: ActionType.CloseMenu }
+  | { type: ActionType.FocusItem; item: number };
+enum ActionType {
+  OpenMenu,
+  CloseMenu,
+  FocusItem,
+}
+
+enum MenuState {
+  Open,
+  Closed,
+}
 
 const Navigation = ({
   children,
@@ -17,16 +78,15 @@ const Navigation = ({
   className,
   routeChangeCompleteCallback,
 }: NavigationArgs) => {
-  const [menuExpanded, setMenuExpanded] = useState(false);
-  const hoveredItem = useRef(-1);
-  const router = useRouter();
+  const reducerBag = useReducer(reducer, {
+    menuState: MenuState.Closed,
+    focusedItem: null,
+    buttonRef: createRef(),
+    linksRef: createRef(),
+  } as NavigationStateDefinition);
+  const [navState, dispatch] = reducerBag;
 
-  useWindowEvent("keydown", (event) => {
-    if (event.key === "Escape") {
-      hoveredItem.current = -1;
-      setMenuExpanded(false);
-    }
-  });
+  const router = useRouter();
 
   const handleRouteChangeComplete = (
     url: string,
@@ -34,8 +94,29 @@ const Navigation = ({
   ) => {
     if (routeChangeCompleteCallback)
       routeChangeCompleteCallback(url, { shallow });
-    setMenuExpanded(false);
+    dispatch({ type: ActionType.CloseMenu });
   };
+
+  useEffect(() => {
+    const animationFrame = requestAnimationFrame(() => {
+      if (navState.focusedItem !== null) {
+        navState.linksRef.current
+          ?.querySelectorAll("a")
+          [navState.focusedItem]?.focus();
+      }
+    });
+
+    return () => cancelAnimationFrame(animationFrame);
+  }, [navState.focusedItem]);
+
+  useWindowEvent("resize", (event) => {
+    if (
+      navState.menuState === MenuState.Open &&
+      matchMedia("(min-width: 640px)")
+    ) {
+      dispatch({ type: ActionType.CloseMenu });
+    }
+  });
 
   useEffect(() => {
     router.events.on("routeChangeComplete", handleRouteChangeComplete);
@@ -44,16 +125,16 @@ const Navigation = ({
     };
   }, [router]);
 
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const linksRef = useRef<HTMLUListElement>(null);
-
   const handleKeyDownButton = (event: KeyboardEvent) => {
     switch (event.key) {
       case "Escape":
         event.preventDefault();
         event.stopPropagation();
-        setMenuExpanded(false);
-        buttonRef?.current?.focus();
+        dispatch({ type: ActionType.CloseMenu });
+
+        requestAnimationFrame(() => {
+          navState.buttonRef.current?.focus();
+        });
         break;
 
       case "Enter":
@@ -63,78 +144,83 @@ const Navigation = ({
         event.preventDefault();
         event.stopPropagation();
 
-        const nextMenu = !menuExpanded;
-        setMenuExpanded((menuExpanded) => !menuExpanded);
-
-        if (nextMenu) {
-          hoveredItem.current = 0;
-          requestAnimationFrame(() => {
-            linksRef?.current
-              ?.querySelectorAll("a")
-              [hoveredItem.current].focus();
-          });
+        if (navState.menuState === MenuState.Open) {
+          dispatch({ type: ActionType.CloseMenu });
+        } else {
+          dispatch({ type: ActionType.OpenMenu });
         }
     }
   };
 
   const handleKeyDownItems = (event: KeyboardEvent) => {
+    const handleDecrement = (rollover = true) => {
+      if (navState.focusedItem === null) return 0;
+
+      let targetItem = navState.focusedItem - 1;
+      if (targetItem === -1) {
+        if (!rollover) {
+          return null;
+        }
+        targetItem += links.length;
+      }
+      return targetItem;
+    };
+
+    const handleIncrement = (rollover = true) => {
+      if (navState.focusedItem === null) return 0;
+
+      let targetItem = navState.focusedItem + 1;
+      if (targetItem === links.length) {
+        if (!rollover) {
+          return null;
+        }
+        targetItem -= links.length;
+      }
+
+      return targetItem;
+    };
+
     switch (event.key) {
       case "Escape":
         event.preventDefault();
         event.stopPropagation();
 
-        hoveredItem.current = -1;
-        setMenuExpanded(false);
+        dispatch({ type: ActionType.CloseMenu });
 
         requestAnimationFrame(() => {
-          buttonRef?.current?.focus();
+          navState.buttonRef.current?.focus();
         });
 
       case "ArrowUp":
+      case "ArrowDown": {
         event.preventDefault();
         event.stopPropagation();
 
-        if (hoveredItem.current - 1 < 0) hoveredItem.current = links.length - 1;
-        else hoveredItem.current--;
-        console.log(hoveredItem);
+        const possibleTarget =
+          event.key === "ArrowUp" ? handleDecrement() : handleIncrement();
 
-        requestAnimationFrame(() => {
-          linksRef?.current
-            ?.querySelectorAll("a")
-            [hoveredItem.current]?.focus();
-        });
-        break;
-
-      case "ArrowDown":
-        event.preventDefault();
-        event.stopPropagation();
-
-        hoveredItem.current = (hoveredItem.current + 1) % links.length;
-        console.log(hoveredItem);
-
-        requestAnimationFrame(() => {
-          linksRef?.current
-            ?.querySelectorAll("a")
-            [hoveredItem.current]?.focus();
-        });
-        break;
-
-      case "Tab":
-        if (event.shiftKey) {
-          hoveredItem.current--;
-
-          if (hoveredItem.current < 0) {
-            requestAnimationFrame(() => {
-              buttonRef?.current?.focus();
-            });
-          }
+        if (possibleTarget !== null) {
+          dispatch({ type: ActionType.FocusItem, item: possibleTarget });
         } else {
-          hoveredItem.current =
-            hoveredItem.current + 1 >= links.length
-              ? -1
-              : hoveredItem.current + 1;
+          dispatch({ type: ActionType.CloseMenu });
         }
+
         break;
+      }
+
+      case "Tab": {
+        const possibleTarget = event.shiftKey
+          ? handleDecrement(false)
+          : handleIncrement(false);
+
+        if (possibleTarget !== null) {
+          dispatch({ type: ActionType.FocusItem, item: possibleTarget });
+        } else {
+          dispatch({ type: ActionType.CloseMenu });
+        }
+
+        break;
+      }
     }
   };
 
@@ -142,7 +228,9 @@ const Navigation = ({
     <nav
       className={[
         "w-full md:h-12 z-10 bg-black text-white duration-500 ease-in-out backdrop-filter backdrop-blur-lg backdrop-saturate-150",
-        menuExpanded ? "h-screen bg-opacity-100" : "h-12 bg-opacity-40",
+        navState.menuState === MenuState.Open
+          ? "h-screen bg-opacity-100"
+          : "h-12 bg-opacity-40",
         position,
       ]
         .filter((x) => x)
@@ -161,10 +249,16 @@ const Navigation = ({
         <div className="flex items-center justify-between py-3">
           <div className="w-4 h-auto z-50">{children}</div>
           <Button
-            ref={buttonRef}
+            ref={navState.buttonRef}
             className="rounded md:hidden hover:bg-white hover:bg-opacity-20"
             onClick={() => {
-              setMenuExpanded((menuExpanded) => !menuExpanded);
+              if (navState.menuState === MenuState.Open) {
+                dispatch({ type: ActionType.CloseMenu });
+              } else {
+                dispatch({ type: ActionType.OpenMenu });
+
+                dispatch({ type: ActionType.FocusItem, item: 0 });
+              }
             }}
             onKeyDown={handleKeyDownButton}
           >
@@ -180,7 +274,7 @@ const Navigation = ({
                   d="M4 6h16M4"
                   className={[
                     "transform-gpu transition-transform duration-500 origin-center",
-                    menuExpanded &&
+                    navState.menuState === MenuState.Open &&
                       "rotate-45 translate-x-[-4px] translate-y-[4px]",
                   ]
                     .filter((x) => x)
@@ -189,7 +283,7 @@ const Navigation = ({
                 <path
                   d="M4 12h16M4"
                   className={[
-                    menuExpanded && "opacity-0",
+                    navState.menuState === MenuState.Open && "opacity-0",
                     "transition-opacity duration-500",
                   ]
                     .filter((x) => x)
@@ -199,7 +293,7 @@ const Navigation = ({
                   d="M4 18h16"
                   className={[
                     "transform-gpu transition-transform duration-500 origin-center",
-                    menuExpanded &&
+                    navState.menuState === MenuState.Open &&
                       "-rotate-45 translate-x-[-4px] translate-y-[-5px]",
                   ]
                     .filter((x) => x)
@@ -212,16 +306,18 @@ const Navigation = ({
         <div
           className={[
             "md:py-0 border-t md:border-none transition-colors md:h-auto",
-            menuExpanded ? "border-accent py-3" : "border-transparent h-0",
+            navState.menuState === MenuState.Open
+              ? "border-accent py-3"
+              : "border-transparent h-0",
           ]
             .filter((x) => x)
             .join(" ")}
         >
           <ul
-            ref={linksRef}
+            ref={navState.linksRef}
             className={[
               "flex flex-col items-start md:flex-row md:space-x-4 md:justify-end md:h-auto",
-              !menuExpanded && "h-0",
+              navState.menuState === MenuState.Closed && "h-0",
             ]
               .filter((x) => x)
               .join(" ")}
@@ -238,7 +334,7 @@ const Navigation = ({
                 }}
                 className={[
                   "transform transition ease-in-out md:visible md:opacity-100 md:translate-y-0",
-                  !menuExpanded
+                  navState.menuState === MenuState.Closed
                     ? "invisible opacity-0 -translate-y-8"
                     : "visible opacity-100 translate-y-0",
                 ]
