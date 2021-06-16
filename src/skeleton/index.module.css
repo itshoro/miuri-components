@@ -1,0 +1,20 @@
+.skeleton {
+  --from: #1a1a1a;
+  --to: #333;
+
+  animation: move 1s ease-in-out;
+  background: linear-gradient(to right, var(--from), var(--to));
+  background-size: 200% 100%;
+}
+
+@keyframes move {
+  0% {
+    background-position: 0%;
+  }
+  50% {
+    background-position: 100% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
+}
