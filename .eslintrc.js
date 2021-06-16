@@ -18,11 +18,11 @@ module.exports = {
   },
   plugins: ["react"],
   rules: {
-    "react/react-in-jsx-scope": "off"
+    "react/react-in-jsx-scope": "off",
   },
   globals: {
-    React: "writable"
-  }
+    React: "writable",
+  },
   settings: {
     react: {
       version: "detect",
