@@ -1,4 +1,5 @@
 import typescript from "rollup-plugin-typescript2";
+import postcss from "rollup-plugin-postcss";
 import del from "rollup-plugin-delete";
 import pkg from "./package.json";
 
@@ -16,6 +17,11 @@ export default [
     ],
     plugins: [
       del({ targets: ["dist/*", "playground/components/miuri"] }),
+      postcss({
+        minimize: true,
+        modules: true,
+        extract: false,
+      }),
       typescript({ tsconfig: "./tsconfig.json" }),
     ],
     external: Object.keys(pkg.peerDependencies || {}).concat([
