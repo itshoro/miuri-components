@@ -1,6 +1,6 @@
 {
   "name": "@itshoro/miuri-components",
-  "main": "dist/index.cjs .js",
+  "main": "dist/index.cjs.js",
   "module": "dist/index.esm.js",
   "version": "1.0.3",
   "description": "Private component library",
@@ -37,6 +37,7 @@
     "react-dom": "^17.0.2",
     "rollup": "^2.52.2",
     "rollup-plugin-delete": "^2.0.0",
+    "rollup-plugin-postcss": "^4.0.0",
     "rollup-plugin-typescript2": "^0.30.0",
     "tailwindcss": "^2.1.4",
     "typescript": "^4.3.2"

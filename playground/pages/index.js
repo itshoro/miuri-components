@@ -1,4 +1,4 @@
-import { Navigation, Text } from "../components/miuri";
+import { Text, Skeleton, Navigation } from "../components/miuri/";
 
 export default function Home() {
   const links = [
@@ -25,6 +25,15 @@ export default function Home() {
         <section className="relative w-full pt-4">
           <article className=" p-4 border rounded-lg resize-x overflow-x-auto max-w-full">
             <Text as="h2">Test</Text>
+          </article>
+        </section>
+
+        <Text as="h1">Skeleton</Text>
+        <section className="relative w-full pt-4">
+          <article className=" p-4 border rounded-lg resize-x overflow-x-auto max-w-full">
+            <Skeleton show={true}>
+              <Text as="h2">Some Longer Test</Text>
+            </Skeleton>
           </article>
         </section>
       </main>
